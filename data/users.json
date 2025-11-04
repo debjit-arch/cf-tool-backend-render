@@ -1,0 +1,50 @@
+{
+  "departments": [
+    {
+      "id": 1,
+      "name": "IT"
+    },
+    {
+      "id": 2,
+      "name": "HR"
+    },
+    {
+      "id": 3,
+      "name": "Finance"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "name": "Alice(Risk_owner)",
+      "role": "risk_owner",
+      "departmentId": 1,
+      "email": "alice@example.com",
+      "password": "$2b$10$TjsdJ.jou0g.8HVG/.iC2Otvk91YogfPHOkDxzJyyXR6H1HcIaj/e"
+    },
+    {
+      "id": 2,
+      "name": "Bob(Risk_manager)",
+      "role": "risk_manager",
+      "departmentId": 2,
+      "email": "bob2021@example.com",
+      "password": "$2b$10$jj/dXIKmYJe5pYRBhjWi/eEN1pl/oXqLs8Y2E/JLK5bNUJ5ygr/C2"
+    },
+    {
+      "id": 3,
+      "name": "Boby(Risk_identifier)",
+      "role": "risk_identifier",
+      "departmentId": 2,
+      "email": "bob20@example.com",
+      "password": "$2b$10$jj/dXIKmYJe5pYRBhjWi/eEN1pl/oXqLs8Y2E/JLK5bNUJ5ygr/C2"
+    },
+    {
+      "id": 4,
+      "name": "Debjit(Risk_manager)",
+      "role": "risk_manager",
+      "departmentId": 1,
+      "email": "debjit@example.com",
+      "password": "$2b$10$wpVn0bYxYjZdNG5v.zTY3uveqdPwB8r/A.7xe7weDJ1Ua0IjvCzn."
+    }
+  ]
+}
