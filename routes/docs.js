@@ -16,7 +16,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, unique + "-" + file.originalname);
-  }
+  },
 });
 const upload = multer({ storage });
 
@@ -36,16 +36,21 @@ router.get("/", async (req, res) => {
 });
 
 // POST upload a document
+// POST upload a document
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    const { soaId, controlId } = req.body;
+    const { soaId, controlId, uploaderName, departmentName } = req.body;
+
     const newDoc = new Document({
       id: Date.now(),
       name: req.file.originalname,
       url: `/uploads/${req.file.filename}`,
       soaId: soaId || null,
-      controlId: controlId || null
+      controlId: controlId || null,
+      uploaderName: uploaderName || "Unknown", // ✅ NEW
+      departmentName: departmentName || "N/A", // ✅ NEW
     });
+
     await newDoc.save();
     res.json(newDoc);
   } catch (err) {
