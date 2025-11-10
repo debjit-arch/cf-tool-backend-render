@@ -58,6 +58,34 @@ router.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+// PATCH /documents/:id/approval
+router.patch("/:id/approval", async (req, res) => {
+  try {
+    const docId = Number(req.params.id);
+    const { approvalDate } = req.body;
+
+    if (!approvalDate)
+      return res.status(400).json({ error: "Approval date required" });
+
+    const parsedDate = new Date(approvalDate);
+    const nextApprovalDate = new Date(parsedDate);
+    nextApprovalDate.setDate(nextApprovalDate.getDate() + 365);
+
+    const updatedDoc = await Document.findOneAndUpdate(
+      { id: docId },
+      { approvalDate: parsedDate, nextApprovalDate },
+      { new: true }
+    );
+
+    if (!updatedDoc)
+      return res.status(404).json({ error: "Document not found" });
+
+    res.json(updatedDoc);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE document by ID
 router.delete("/:id", async (req, res) => {
   try {
