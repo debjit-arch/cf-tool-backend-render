@@ -1,181 +1,103 @@
 const express = require("express");
+const router = express.Router();
+const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const pdf = require("pdf-parse");
-const mammoth = require("mammoth");
 const Gap = require("../models/Gaps");
 
-const router = express.Router();
-const DOCS_FILE = path.join(__dirname, "..", "data", "documents.json");
+// Ensure uploads folder exists
+const uploadsDir = path.join(__dirname, "../uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
-// ✅ GET all Gaps
-router.get("/", async (req, res) => {
-  try {
-    const gaps = await Gap.find().sort({ createdAt: -1 });
-    res.json(gaps);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+// Multer config
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage });
+
+// Upload document file
+router.post("/upload", upload.single("file"), (req, res) => {
+  console.log("Upload request received");
+  if (!req.file) {
+    console.log("No file uploaded");
+    return res.status(400).json({ message: "No file uploaded" });
   }
+  console.log("File uploaded:", req.file.filename);
+  res.json({ url: `/uploads/${req.file.filename}` });
 });
 
-// ✅ GET one gap by docId
-router.get("/:docId", async (req, res) => {
-  try {
-    const gap = await Gap.findOne({ docId: req.params.docId });
-    if (!gap) return res.status(404).json({ error: "Gap not found" });
-    res.json(gap);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ✅ POST create new gap
+// Create or update gap entry (employee)
 router.post("/", async (req, res) => {
   try {
-    const newGap = new Gap(req.body);
-    await newGap.save();
-    res.json(newGap);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    const {
+      clause,
+      standardRequirement,
+      question,
+      practiceEvidence,
+      documentURL,
+      createdBy,
+    } = req.body;
 
-// ✅ PUT update or insert gap by docId
-router.put("/:docId", async (req, res) => {
-  try {
-    const { docId } = req.params;
-    const updatedGap = await Gap.findOneAndUpdate(
-      { docId },
-      { ...req.body },
-      { new: true, upsert: true }
-    );
-    res.json(updatedGap);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ✅ PATCH update specific gap fields
-router.patch("/:docId", async (req, res) => {
-  try {
-    const { docId } = req.params;
-    const updatedGap = await Gap.findOneAndUpdate(
-      { docId },
-      { $set: req.body },
-      { new: true }
-    );
-    if (!updatedGap) return res.status(404).json({ message: "Gap not found" });
-    res.json(updatedGap);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ✅ DELETE a gap
-router.delete("/:docId", async (req, res) => {
-  try {
-    const deleted = await Gap.findOneAndDelete({ docId: req.params.docId });
-    if (!deleted) return res.status(404).json({ error: "Gap not found" });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ✅ COMPLIANCE CHECK
-router.post("/:docId/check-compliance", async (req, res) => {
-  try {
-    const { docId } = req.params;
-
-    const Document = require("../models/Docs"); // <-- import the model
-
-    // inside check-compliance
-    const doc = await Document.findOne({ id: Number(docId) });
-    if (!doc) return res.status(404).json({ error: "Document not found" });
-
-    // 2️⃣ Resolve file path
-    const filePath = path.join(__dirname, "..", doc.url);
-    const fileExists = fs.existsSync(filePath);
-
-    // 3️⃣ Extract text
-    let text = "";
-    if (fileExists) {
-      if (filePath.endsWith(".pdf")) {
-        const buffer = fs.readFileSync(filePath);
-        text = (await pdf(buffer)).text;
-      } else if (filePath.endsWith(".docx")) {
-        text = (await mammoth.extractRawText({ path: filePath })).value;
-      } else {
-        text = fs.readFileSync(filePath, "utf-8");
-      }
+    let gap = await Gap.findOne({ clause, question });
+    if (gap) {
+      gap.practiceEvidence = practiceEvidence || gap.practiceEvidence;
+      gap.documentURL = documentURL || gap.documentURL;
+      gap.createdBy = createdBy || gap.createdBy;
+    } else {
+      gap = new Gap({
+        clause,
+        standardRequirement,
+        question,
+        practiceEvidence,
+        documentURL,
+        createdBy,
+      });
     }
 
-    // 4️⃣ Compliance rules
-    const rules = {
-      required_sections: ["Purpose", "Scope", "Responsibilities", "Procedure"],
-      forbidden_phrases: [
-        "should try to",
-        "maybe",
-        "if possible",
-        "where feasible",
-      ],
-      mandatory_keywords: ["employees", "policy", "must", "procedure"],
-    };
-
-    const missing_sections = rules.required_sections.filter(
-      (sec) => !text.toLowerCase().includes(sec.toLowerCase())
-    );
-
-    const forbidden_phrases_found = rules.forbidden_phrases.filter((p) =>
-      text.toLowerCase().includes(p.toLowerCase())
-    );
-
-    const missing_keywords = rules.mandatory_keywords.filter(
-      (k) => !text.toLowerCase().includes(k.toLowerCase())
-    );
-
-    const totalChecks =
-      rules.required_sections.length +
-      rules.mandatory_keywords.length +
-      rules.forbidden_phrases.length;
-    const passedChecks =
-      rules.required_sections.length -
-      missing_sections.length +
-      rules.mandatory_keywords.length -
-      missing_keywords.length +
-      rules.forbidden_phrases.length -
-      forbidden_phrases_found.length;
-
-    const score = Math.round((passedChecks / totalChecks) * 100);
-    const label = score >= 70 ? "compliant" : "non-compliant";
-
-    // 5️⃣ Prepare compliance result
-    const complianceResult = {
-      docId,
-      docName: doc.name,
-      missing_sections,
-      forbidden_phrases_found,
-      missing_keywords,
-      score,
-      label,
-      status: fileExists
-        ? score >= 70
-          ? "Waiting for Approval"
-          : "Rejeceted"
-        : "Missing",
-      checkedAt: new Date(),
-    };
-
-    // 6️⃣ Save/update to DB
-    const updatedGap = await Gap.findOneAndUpdate({ docId }, complianceResult, {
-      upsert: true,
-      new: true,
-    });
-
-    res.json(updatedGap);
+    await gap.save();
+    res.json(gap); // ✅ JSON response
   } catch (err) {
-    console.error("Compliance check error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Gap creation/update failed:", err);
+    res.status(500).json({ message: "Server Error", error: err.message }); // ✅ JSON response
+  }
+});
+
+// Get all gaps
+router.get("/", async (req, res) => {
+  try {
+    const gaps = await Gap.find();
+    res.json(gaps);
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+});
+
+// Auditor updates gap
+router.put("/:id", async (req, res) => {
+  try {
+    const { docScore, practiceScore, docRemarks, practiceRemarks, verifiedBy } =
+      req.body;
+    const gap = await Gap.findByIdAndUpdate(
+      req.params.id,
+      {
+        docScore,
+        practiceScore,
+        docRemarks,
+        practiceRemarks,
+        verifiedBy,
+        status: "Verified",
+      },
+      { new: true }
+    );
+    res.json(gap);
+  } catch (err) {
+    res.status(500).send("Server Error");
   }
 });
 

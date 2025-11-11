@@ -1,18 +1,20 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const gapSchema = new mongoose.Schema(
-  {
-    docId: { type: String, required: true },
-    status: { type: String, default: "Pending" },
-    docName: { type: String, required: true },
-    missing_sections: { type: [String], default: [] },
-    forbidden_phrases_found: { type: [String], default: [] },
-    missing_keywords: { type: [String], default: [] },
-    score: { type: Number, default: 0 },
-    label: { type: String, default: "non-compliant" },
-    checkedAt: { type: Date, default: Date.now },
-  },
-  { timestamps: true }
-);
+const gapSchema = new mongoose.Schema({
+  clause: { type: String, required: true },
+  standardRequirement: { type: String }, // optional
+  question: { type: String, required: true },
+  documentURL: { type: String },
+  practiceEvidence: { type: String },
 
-module.exports = mongoose.model("Gap", gapSchema);
+  docScore: { type: String },
+  practiceScore: { type: String },
+  docRemarks: { type: String },
+  practiceRemarks: { type: String },
+
+  createdBy: { type: String },    // no longer required
+  verifiedBy: { type: String },   
+  status: { type: String, default: 'Pending' },
+}, { timestamps: true });
+
+module.exports = mongoose.model('Gap', gapSchema);
