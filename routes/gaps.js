@@ -101,4 +101,40 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+// DELETE document by URL
+// body: { url: "/uploads/filename.jpg" }
+// DELETE document by URL
+// body: { url: "/uploads/filename.jpg", field: "documentURL" | "practiceEvidence" }
+router.delete("/by-url", async (req, res) => {
+  try {
+    const { url, field } = req.body;
+
+    if (!url || !field) {
+      return res.status(400).json({ error: "File URL and field are required" });
+    }
+
+    // Validate field
+    if (!["documentURL", "practiceEvidence"].includes(field)) {
+      return res.status(400).json({ error: "Invalid field" });
+    }
+
+    // Find the Gap entry that has this file
+    const gap = await Gap.findOne({ [field]: url });
+    if (!gap) return res.status(404).json({ error: "Document not found" });
+
+    // Delete file from uploads folder
+    const filePath = path.join(uploadsDir, path.basename(url));
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    // Remove file reference from the database
+    gap[field] = null;
+    await gap.save();
+
+    res.json({ message: "Document deleted successfully" });
+  } catch (err) {
+    console.error("Delete by URL failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
