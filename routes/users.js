@@ -4,12 +4,18 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
 const Department = require("../models/Departments");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
+const { sendOtpEmail } = require("../utils/mail");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 // Allowed roles
-const ALLOWED_ROLES = ["super_admin","risk_owner", "risk_manager", "risk_identifier"];
+const ALLOWED_ROLES = [
+  "super_admin",
+  "risk_owner",
+  "risk_manager",
+  "risk_identifier",
+];
 
 // ================= USERS =================
 
@@ -57,12 +63,16 @@ router.post(
 
       // ✅ Prevent non-super-admins from creating super_admins
       if (role === "super_admin" && req.user.role !== "super_admin") {
-        return res.status(403).json({ error: "Only super_admin can create another super_admin" });
+        return res
+          .status(403)
+          .json({ error: "Only super_admin can create another super_admin" });
       }
 
       // ✅ For users (non-super_admin), department is required
       if (role !== "super_admin" && !departmentId) {
-        return res.status(400).json({ error: "departmentId is required for this role" });
+        return res
+          .status(400)
+          .json({ error: "departmentId is required for this role" });
       }
 
       const department =
@@ -92,7 +102,6 @@ router.post(
     }
   }
 );
-
 
 // Login
 router.post("/login", async (req, res) => {
@@ -149,6 +158,61 @@ router.post("/change-password", authenticate, async (req, res) => {
     await user.save();
 
     res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ================= Forgot Password =================
+
+// Send OTP
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email required" });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Generate OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 mins
+
+    // Store OTP in session
+    if (!req.session.otpStore) req.session.otpStore = {};
+    req.session.otpStore[email.toLowerCase()] = { otp: otpCode, expiresAt };
+
+    // Send OTP via email
+    await sendOtpEmail(user.email, otpCode);
+
+    res.json({ message: "OTP sent to your email" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify OTP
+router.post("/verify-otp", (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp)
+      return res.status(400).json({ error: "Email and OTP required" });
+
+    const store = req.session.otpStore?.[email.toLowerCase()];
+    if (!store)
+      return res.status(400).json({ error: "No OTP found for this email" });
+
+    if (store.otp !== otp)
+      return res.status(400).json({ error: "Invalid OTP" });
+
+    if (Date.now() > store.expiresAt)
+      return res.status(400).json({ error: "OTP expired" });
+
+    // OTP verified, delete it from session
+    delete req.session.otpStore[email.toLowerCase()];
+
+    // Respond success
+    res.json({ message: "OTP verified successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -218,7 +282,6 @@ router.put(
   }
 );
 
-
 // Delete user
 router.delete(
   "/:id",
@@ -252,6 +315,26 @@ router.delete(
     }
   }
 );
+
+// Reset password after OTP verification (no old password required)
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword)
+      return res.status(400).json({ error: "Email and new password required" });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.password = bcrypt.hashSync(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 // ================= DEPARTMENTS =================
@@ -306,9 +389,14 @@ router.put(
         return res.status(404).json({ error: "Department not found" });
 
       // Check if name already exists
-      const exists = await Department.findOne({ name, _id: { $ne: req.params.id } });
+      const exists = await Department.findOne({
+        name,
+        _id: { $ne: req.params.id },
+      });
       if (exists)
-        return res.status(400).json({ error: "Department name already exists" });
+        return res
+          .status(400)
+          .json({ error: "Department name already exists" });
 
       department.name = name;
       await department.save();
@@ -345,6 +433,5 @@ router.delete(
     }
   }
 );
-
 
 module.exports = router;
