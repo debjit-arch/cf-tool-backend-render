@@ -24,30 +24,29 @@ const PORT = process.env.PORT || 4000;
 // ================= CORS setup =================
 // Allow React frontend to send credentials (cookies)
 app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "https://tool.consultantsfactory.com", // your production domain
-    ],
-    credentials: true,
-  })
-);
-
-app.use(express.json());
-
-// ================= Session setup =================
-app.use(
   session({
     secret: process.env.SESSION_SECRET || "supersecretkey",
     resave: false,
     saveUninitialized: true,
     cookie: {
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      httpOnly: true, // prevents client JS from reading cookie
-      sameSite: "lax", // allows cross-origin for localhost
+      maxAge: 15 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
     },
   })
 );
+
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://tool.consultantsfactory.com"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.use(express.json());
 
 // Ensure folders exist
 const dataDir = path.join(__dirname, "data");
