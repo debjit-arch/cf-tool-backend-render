@@ -139,7 +139,7 @@ router.post("/change-password", authenticate, async (req, res) => {
         .status(400)
         .json({ error: "Both old and new passwords required" });
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.sub);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     if (!bcrypt.compareSync(oldPassword, user.password))
