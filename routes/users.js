@@ -7,7 +7,7 @@ const { authenticate, authorizeRoles } = require("../middleware/auth");
 const { sendOtpEmail } = require("../utils/mail");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
+const JWT_SECRET = process.env.JWT_SECRET || "hbDGxyixY2wvTjNVUcxjIX/hyRasXYo/b0HrXm8GdinvtWQrq0/0NGO+acdzfNyrw5DccbNQHy0S0TKGWNjHWQ==";
 
 // Allowed roles
 const ALLOWED_ROLES = [

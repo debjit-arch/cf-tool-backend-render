@@ -6,7 +6,7 @@ const Department = require("../models/Departments");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
+const JWT_SECRET = process.env.JWT_SECRET || "hbDGxyixY2wvTjNVUcxjIX/hyRasXYo/b0HrXm8GdinvtWQrq0/0NGO+acdzfNyrw5DccbNQHy0S0TKGWNjHWQ==";
 
 // Allowed roles
 const ALLOWED_ROLES = ["risk_owner", "risk_manager", "risk_identifier"];
