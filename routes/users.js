@@ -381,9 +381,16 @@ router.post(
       if (!name)
         return res.status(400).json({ error: "Department name is required" });
 
-      const exists = await Department.findOne({ name });
+      // Check for duplicate name inside same organization
+      const exists = await Department.findOne({
+        name,
+        organization: req.user.organization,
+      });
+
       if (exists)
-        return res.status(400).json({ error: "Department already exists" });
+        return res
+          .status(400)
+          .json({ error: "Department already exists in your organization" });
 
       const dept = await Department.create({
         name,
