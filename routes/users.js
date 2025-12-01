@@ -391,7 +391,7 @@ router.post(
 router.put(
   "/departments/:id",
   authenticate,
-  authorizeRoles("super_admin"),
+  authorizeRoles("super_admin","root"),
   async (req, res) => {
     try {
       const { name } = req.body;
