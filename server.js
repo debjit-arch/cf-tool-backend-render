@@ -43,7 +43,7 @@ app.use(
     origin: ["http://localhost:3000", "https://tool.consultantsfactory.com","https://microservices.d1iwz64jvqpior.amplifyapp.com","https://main.d1jl1790poryf2.amplifyapp.com"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization","x-org"],
   })
 );
 
