@@ -365,7 +365,7 @@ router.get("/departments", async (req, res) => {
 router.post(
   "/departments",
   authenticate,
-  authorizeRoles("super_admin","root"),
+  authorizeRoles("super_admin", "root"),
   async (req, res) => {
     try {
       const { name } = req.body;
@@ -376,7 +376,11 @@ router.post(
       if (exists)
         return res.status(400).json({ error: "Department already exists" });
 
-      const dept = await Department.create({ name });
+      const dept = await Department.create({
+        name,
+        organization: req.user.organization, // assign from logged-in user
+      });
+
       res.status(201).json(dept);
     } catch (err) {
       res.status(500).json({ error: err.message });
