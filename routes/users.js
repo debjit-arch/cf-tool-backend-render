@@ -262,8 +262,15 @@ router.put(
       const user = await User.findById(req.params.id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
-      const { name, role, departmentId, email, password, organization } =
-        req.body;
+      const {
+        name,
+        role,
+        departmentId,
+        email,
+        password,
+        organization,
+        isAuditor, // <-- include this
+      } = req.body;
 
       if (
         req.user.role !== "root" &&
@@ -304,6 +311,8 @@ router.put(
 
       if (organization && req.user.role === "root")
         user.organization = organization;
+
+      if (typeof isAuditor !== "undefined") user.isAuditor = isAuditor; // <-- update auditor
 
       await user.save();
       const { password: pwd, ...finalUser } = user.toObject();
@@ -391,7 +400,7 @@ router.post(
 router.put(
   "/departments/:id",
   authenticate,
-  authorizeRoles("super_admin","root"),
+  authorizeRoles("super_admin", "root"),
   async (req, res) => {
     try {
       const { name } = req.body;
