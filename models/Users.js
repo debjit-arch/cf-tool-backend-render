@@ -31,7 +31,8 @@ const UserSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       required: function () {
-        return this.role !== "super_admin" || this.role !== "root"; // super_admin does NOT need department
+        return this.role !== "super_admin" && this.role !== "root";
+        // only required for risk_owner, risk_manager, risk_identifier
       },
     },
 
