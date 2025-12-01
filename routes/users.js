@@ -365,7 +365,7 @@ router.get("/departments", async (req, res) => {
 router.post(
   "/departments",
   authenticate,
-  authorizeRoles("super_admin"),
+  authorizeRoles("super_admin","root"),
   async (req, res) => {
     try {
       const { name } = req.body;
