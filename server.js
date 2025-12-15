@@ -48,7 +48,7 @@ app.use(
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-org","x-region"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-org", "x-region"],
   })
 );
 
@@ -78,25 +78,45 @@ app.use("/uploads", express.static(uploadsDir));
 
 // ================= Connect DB and start server =================
 const connections = {};
+const CA_FILE = path.join(__dirname, "global-bundle.pem");
 
 function connectDB(name, uri) {
   const conn = mongoose.createConnection(uri, {
-    tls: true,
     retryWrites: false,
   });
 
-  conn.on("connected", () => console.log(`✅ Connected to ${name} DB`));
+  conn.on("connected", () => console.log(`✅ Connected to ${name} DocumentDB`));
 
-  conn.on("error", (err) => console.error(`❌ ${name} DB error`, err));
+  conn.on("error", (err) => console.error(`❌ ${name} DocumentDB error`, err));
 
   return conn;
 }
 
-connections.india = connectDB("INDIA", "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/admin");
-connections.eu = connectDB("EU", "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin");
-connections.us = connectDB("US", "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin");
+// 🇮🇳 INDIA (ap-south-1)
+connections.india = connectDB(
+  "INDIA",
+  "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/admin" +
+    "?tls=true&tlsCAFile=" +
+    CA_FILE
+);
 
-// Make connections available to routes
+// 🇪🇺 EUROPE (eu-central-1)
+connections.eu = connectDB(
+  "EU",
+  "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin" +
+    "?tls=true&tlsCAFile=" +
+    CA_FILE
+);
+
+// 🇺🇸 USA (us-east-1)
+connections.us = connectDB(
+  "US",
+  "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin" +
+    "?tls=true&tlsCAFile=" +
+    CA_FILE
+);
+
+// expose to routes
 app.locals.db = connections;
 
 // Start server AFTER all DBs are initialized
