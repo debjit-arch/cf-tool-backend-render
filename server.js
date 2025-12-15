@@ -81,8 +81,11 @@ const connections = {};
 const CA_FILE = path.join(__dirname, "global-bundle.pem");
 
 function connectDB(name, uri) {
+  console.log("Attempting DB connection:", name);
   const conn = mongoose.createConnection(uri, {
     retryWrites: false,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
   });
 
   conn.on("connected", () => console.log(`✅ Connected to ${name} DocumentDB`));
