@@ -78,11 +78,13 @@ app.use("/uploads", express.static(uploadsDir));
 
 // ================= Connect DB and start server =================
 const connections = {};
-const CA_FILE = path.join(__dirname, "global-bundle.pem");
 
 function connectDB(name, uri) {
   console.log("Attempting DB connection:", name);
+
   const conn = mongoose.createConnection(uri, {
+    ssl: true,
+    sslCA: path.join(__dirname, "global-bundle.pem"),
     retryWrites: false,
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -90,7 +92,9 @@ function connectDB(name, uri) {
 
   conn.on("connected", () => console.log(`✅ Connected to ${name} DocumentDB`));
 
-  conn.on("error", (err) => console.error(`❌ ${name} DocumentDB error`, err));
+  conn.on("error", (err) =>
+    console.error(`❌ ${name} DocumentDB error`, err.message)
+  );
 
   return conn;
 }
@@ -98,25 +102,17 @@ function connectDB(name, uri) {
 // 🇮🇳 INDIA (ap-south-1)
 connections.india = connectDB(
   "INDIA",
-  "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/admin" +
-    "?tls=true&tlsCAFile=" +
-    CA_FILE
+  "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/admin"
 );
 
-// 🇪🇺 EUROPE (eu-central-1)
 connections.eu = connectDB(
   "EU",
-  "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin" +
-    "?tls=true&tlsCAFile=" +
-    CA_FILE
+  "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin"
 );
 
-// 🇺🇸 USA (us-east-1)
 connections.us = connectDB(
   "US",
-  "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin" +
-    "?tls=true&tlsCAFile=" +
-    CA_FILE
+  "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin"
 );
 
 // expose to routes
