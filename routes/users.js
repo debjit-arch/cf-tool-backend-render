@@ -1,11 +1,12 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { authenticate, authorizeRoles } = require("../middleware/auth");
+const { sendOtpEmail } = require("../utils/mail");
+
 const User = require("../models/Users");
 const Department = require("../models/Departments");
 const Organization = require("../models/Organizations");
-const { authenticate, authorizeRoles } = require("../middleware/auth");
-const { sendOtpEmail } = require("../utils/mail");
 
 const router = express.Router();
 
@@ -21,23 +22,32 @@ const ALLOWED_ROLES = [
   "risk_identifier",
 ];
 
+// -------------------------
+// Helper: get region-specific models
+// -------------------------
+function getModels(db) {
+  return {
+    User: db.model("User", User.schema),
+    Department: db.model("Department", Department.schema),
+    Organization: db.model("Organization", Organization.schema),
+  };
+}
+
 // =============================
+// USERS ROUTES
+// =============================
+
 // GET ALL USERS
-// =============================
 router.get("/", authenticate, async (req, res) => {
   try {
+    const { User, Department } = getModels(req.db);
+
     let query = {};
-
-    if (req.user.role === "super_admin") {
-      query.organization = req.user.organization;
-    }
-
-    if (req.user.role === "root") {
+    if (req.user.role === "super_admin" || req.user.role === "root") {
       query.organization = req.user.organization;
     }
 
     const users = await User.find(query).populate("department", "name");
-
     const sanitized = users.map((u) => {
       const { password, ...rest } = u.toObject();
       return {
@@ -53,15 +63,14 @@ router.get("/", authenticate, async (req, res) => {
   }
 });
 
-// =============================
 // CREATE USER
-// =============================
 router.post(
   "/",
   authenticate,
   authorizeRoles("super_admin", "root"),
   async (req, res) => {
     try {
+      const { User, Department } = getModels(req.db);
       const { name, role, departmentId, email, password, organization } =
         req.body;
 
@@ -69,9 +78,11 @@ router.post(
         return res.status(400).json({ error: "All fields are required" });
 
       if (!ALLOWED_ROLES.includes(role))
-        return res.status(400).json({
-          error: `Invalid role. Allowed roles: ${ALLOWED_ROLES.join(", ")}`,
-        });
+        return res
+          .status(400)
+          .json({
+            error: `Invalid role. Allowed roles: ${ALLOWED_ROLES.join(", ")}`,
+          });
 
       // Role-based creation rules
       if (role === "root" && req.user.role !== "super_admin")
@@ -87,21 +98,16 @@ router.post(
           .status(403)
           .json({ error: "Only root can create risk owners or identifiers" });
 
-      // Organization assignment
       let userOrg;
-      if (role === "super_admin") {
-        userOrg = undefined;
-      } else if (role === "root") {
+      if (role === "super_admin") userOrg = undefined;
+      else if (role === "root") {
         if (!organization)
           return res
             .status(400)
             .json({ error: "Organization is required for root" });
         userOrg = organization;
-      } else {
-        userOrg = req.user.organization;
-      }
+      } else userOrg = req.user.organization;
 
-      // Department assignment for risk roles
       let userDept;
       if (role === "risk_owner" || role === "risk_identifier") {
         if (!departmentId)
@@ -133,8 +139,8 @@ router.post(
         email: email.toLowerCase(),
         password: hashedPassword,
       });
-
       await newUser.save();
+
       const { password: pwd, ...withoutPassword } = newUser.toObject();
       res.status(201).json(withoutPassword);
     } catch (err) {
@@ -143,31 +149,20 @@ router.post(
   }
 );
 
-// =============================
 // LOGIN
-// =============================
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    const { User } = getModels(req.db);
 
-    // Use the region-specific DB connection
-    const db = req.db;
-    if (!db) return res.status(500).json({ error: "DB not available" });
-
-    // Create a model from the regional connection
-    const UserModel = db.model("User", User.schema);
-
-    // Find user
-    const user = await UserModel.findOne({
-      email: email.toLowerCase(),
-    }).populate("department");
+    const user = await User.findOne({ email: email.toLowerCase() }).populate(
+      "department"
+    );
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-    // Verify password
     const isMatch = bcrypt.compareSync(password, user.password);
     if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
-    // Generate JWT
     const token = jwt.sign(
       {
         id: user._id,
@@ -179,20 +174,18 @@ router.post("/login", async (req, res) => {
       { expiresIn: "10h" }
     );
 
-    // Send response
     res.json({ token, user });
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// =============================
 // CHANGE PASSWORD
-// =============================
 router.post("/change-password", authenticate, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
+    const { User } = getModels(req.db);
+
     if (!oldPassword || !newPassword)
       return res
         .status(400)
@@ -211,12 +204,12 @@ router.post("/change-password", authenticate, async (req, res) => {
   }
 });
 
-// =============================
 // FORGOT / VERIFY / RESET PASSWORD
-// =============================
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
+    const { User } = getModels(req.db);
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -252,6 +245,8 @@ router.post("/verify-otp", (req, res) => {
 router.post("/reset-password", async (req, res) => {
   try {
     const { email, newPassword } = req.body;
+    const { User } = getModels(req.db);
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -263,15 +258,14 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-// =============================
 // UPDATE USER
-// =============================
 router.put(
   "/:id",
   authenticate,
   authorizeRoles("super_admin", "root"),
   async (req, res) => {
     try {
+      const { User, Department } = getModels(req.db);
       const user = await User.findById(req.params.id);
       if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -282,7 +276,7 @@ router.put(
         email,
         password,
         organization,
-        isAuditor, // <-- include this
+        isAuditor,
       } = req.body;
 
       if (
@@ -295,7 +289,6 @@ router.put(
 
       if (role && !ALLOWED_ROLES.includes(role))
         return res.status(400).json({ error: "Invalid role" });
-
       if (role === "super_admin" && req.user.role !== "root")
         return res
           .status(403)
@@ -324,8 +317,7 @@ router.put(
 
       if (organization && req.user.role === "root")
         user.organization = organization;
-
-      if (typeof isAuditor !== "undefined") user.isAuditor = isAuditor; // <-- update auditor
+      if (typeof isAuditor !== "undefined") user.isAuditor = isAuditor;
 
       await user.save();
       const { password: pwd, ...finalUser } = user.toObject();
@@ -336,15 +328,14 @@ router.put(
   }
 );
 
-// =============================
 // DELETE USER
-// =============================
 router.delete(
   "/:id",
   authenticate,
   authorizeRoles("super_admin", "root"),
   async (req, res) => {
     try {
+      const { User } = getModels(req.db);
       if (req.user.id === req.params.id)
         return res.status(400).json({ error: "You cannot delete yourself" });
 
@@ -374,10 +365,11 @@ router.delete(
 );
 
 // =============================
-// DEPARTMENTS
+// DEPARTMENTS ROUTES
 // =============================
 router.get("/departments", async (req, res) => {
   try {
+    const { Department } = getModels(req.db);
     res.json(await Department.find());
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -390,16 +382,15 @@ router.post(
   authorizeRoles("super_admin", "root"),
   async (req, res) => {
     try {
+      const { Department } = getModels(req.db);
       const { name } = req.body;
       if (!name)
         return res.status(400).json({ error: "Department name is required" });
 
-      // Check for duplicate name inside same organization
       const exists = await Department.findOne({
         name,
         organization: req.user.organization,
       });
-
       if (exists)
         return res
           .status(400)
@@ -407,9 +398,8 @@ router.post(
 
       const dept = await Department.create({
         name,
-        organization: req.user.organization, // assign from logged-in user
+        organization: req.user.organization,
       });
-
       res.status(201).json(dept);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -423,6 +413,7 @@ router.put(
   authorizeRoles("super_admin", "root"),
   async (req, res) => {
     try {
+      const { Department } = getModels(req.db);
       const { name } = req.body;
       const department = await Department.findById(req.params.id);
       if (!department)
@@ -452,6 +443,7 @@ router.delete(
   authorizeRoles("super_admin"),
   async (req, res) => {
     try {
+      const { Department, User } = getModels(req.db);
       const department = await Department.findById(req.params.id);
       if (!department)
         return res.status(404).json({ error: "Department not found" });
@@ -471,12 +463,12 @@ router.delete(
 );
 
 // =============================
-// ORGANIZATIONS
+// ORGANIZATIONS ROUTES
 // =============================
 router.get("/organizations", authenticate, async (req, res) => {
   try {
-    const orgs = await Organization.find();
-    res.json(orgs);
+    const { Organization } = getModels(req.db);
+    res.json(await Organization.find());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -488,6 +480,7 @@ router.post(
   authorizeRoles("super_admin"),
   async (req, res) => {
     try {
+      const { Organization } = getModels(req.db);
       const { name } = req.body;
       if (!name)
         return res.status(400).json({ error: "Organization name is required" });
@@ -505,11 +498,12 @@ router.post(
 );
 
 router.delete(
-  "/organizations/",
+  "/organizations/:id",
   authenticate,
   authorizeRoles("super_admin"),
   async (req, res) => {
     try {
+      const { Organization, User } = getModels(req.db);
       const org = await Organization.findById(req.params.id);
       if (!org)
         return res.status(404).json({ error: "Organization not found" });
