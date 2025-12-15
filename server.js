@@ -2,14 +2,11 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
-const multer = require("multer");
-const pdfParse = require("pdf-parse");
-const mammoth = require("mammoth");
-const fetch = require("node-fetch");
-require("dotenv").config();
-const mongoose = require("mongoose");
 const session = require("express-session");
+const mongoose = require("mongoose");
+require("dotenv").config();
 
+// Routers
 const docsRouter = require("./routes/docs");
 const controlsRouter = require("./routes/controls");
 const soaRouter = require("./routes/soa");
@@ -21,9 +18,9 @@ const usersRouter = require("./routes/users");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// ================= CORS & Session =================
 app.set("trust proxy", 1);
-// ================= CORS setup =================
-// Allow React frontend to send credentials (cookies)
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "supersecretkey",
@@ -54,11 +51,77 @@ app.use(
 
 app.use(express.json());
 
-// Ensure folders exist
+// ================= Ensure folders exist =================
 const dataDir = path.join(__dirname, "data");
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+
+// Serve uploads
+app.use("/uploads", express.static(uploadsDir));
+
+// ================= DB Configs =================
+const dbConfigs = {
+  INDIA: {
+    uri: "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/admin",
+    conn: null,
+  },
+  EU: {
+    uri: "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin",
+    conn: null,
+  },
+  US: {
+    uri: "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin",
+    conn: null,
+  },
+};
+
+// ================= Helper: Get DB Connection =================
+async function getDBConnection(region) {
+  const config = dbConfigs[region.toUpperCase()];
+  if (!config) throw new Error(`Unknown region: ${region}`);
+
+  if (!config.conn) {
+    console.log(`Attempting DB connection: ${region}`);
+    config.conn = mongoose.createConnection(config.uri, {
+      ssl: true,
+      sslCA: path.join(__dirname, "global-bundle.pem"),
+      retryWrites: false,
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+
+    config.conn.on("connected", () =>
+      console.log(`✅ Connected to ${region} DocumentDB`)
+    );
+    config.conn.on("error", (err) =>
+      console.error(`❌ ${region} DocumentDB error`, err.message)
+    );
+
+    // Wait for connection to be ready
+    await new Promise((resolve, reject) => {
+      config.conn.once("open", resolve);
+      config.conn.once("error", reject);
+    });
+  }
+
+  return config.conn;
+}
+
+// ================= Middleware: Attach DB =================
+app.use(async (req, res, next) => {
+  const region = req.headers["x-region"];
+  if (!region)
+    return res.status(400).json({ error: "x-region header missing" });
+
+  try {
+    req.db = await getDBConnection(region);
+    next();
+  } catch (err) {
+    console.error("DB connection error:", err.message);
+    res.status(500).json({ error: "DB connection failed" });
+  }
+});
 
 // ================= Routes =================
 app.get("/", (req, res) => {
@@ -73,52 +136,7 @@ app.use("/api/risks", risksRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/users", usersRouter);
 
-// Serve uploads
-app.use("/uploads", express.static(uploadsDir));
-
-// ================= Connect DB and start server =================
-const connections = {};
-
-function connectDB(name, uri) {
-  console.log("Attempting DB connection:", name);
-
-  const conn = mongoose.createConnection(uri, {
-    ssl: true,
-    sslCA: path.join(__dirname, "global-bundle.pem"),
-    retryWrites: false,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-
-  conn.on("connected", () => console.log(`✅ Connected to ${name} DocumentDB`));
-
-  conn.on("error", (err) =>
-    console.error(`❌ ${name} DocumentDB error`, err.message)
-  );
-
-  return conn;
-}
-
-// 🇮🇳 INDIA (ap-south-1)
-connections.india = connectDB(
-  "INDIA",
-  "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/admin"
-);
-
-connections.eu = connectDB(
-  "EU",
-  "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin"
-);
-
-connections.us = connectDB(
-  "US",
-  "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin"
-);
-
-// expose to routes
-app.locals.db = connections;
-
-// Start server AFTER all DBs are initialized
-app.listen(PORT, () =>
-  console.log(`✅ Backend running on http://localhost:${PORT}`)
-);
+// ================= Start Server =================
+app.listen(PORT, () => {
+  console.log(`✅ Backend running on http://localhost:${PORT}`);
+});
