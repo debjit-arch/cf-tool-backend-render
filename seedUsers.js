@@ -6,38 +6,18 @@ const Department = require("./models/Departments");
 
 const users = [
   {
-    name: "Alice(Risk_owner)",
-    role: "risk_owner",
-    department: "IT",
-    email: "alice@example.com",
-    password: "password123"
+    name: "Saikat Basu",
+    role: "super_admin",
+    email: "sbasu@consultantsfactory.com",
+    password: "admin",
   },
-  {
-    name: "Bob(Risk_manager)",
-    role: "risk_manager",
-    department: "HR",
-    email: "bob2021@example.com",
-    password: "password123"
-  },
-  {
-    name: "Boby(Risk_identifier)",
-    role: "risk_identifier",
-    department: "HR",
-    email: "bob20@example.com",
-    password: "password123"
-  },
-  {
-    name: "Debjit(Risk_manager)",
-    role: "risk_manager",
-    department: "IT",
-    email: "debjit@example.com",
-    password: "password123"
-  }
 ];
 
 async function seedUsers() {
   try {
-    await mongoose.connect("mongodb+srv://debjit:katana007@cluster0.kd9pbws.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0");
+    await mongoose.connect(
+      "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=global-bundle.pem&retryWrites=false"
+    );
     console.log("Connected to MongoDB");
 
     // Clear existing users
@@ -55,7 +35,7 @@ async function seedUsers() {
         role: u.role,
         department: dept._id,
         email: u.email,
-        password: hashedPassword
+        password: hashedPassword,
       });
 
       await user.save();

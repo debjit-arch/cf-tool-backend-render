@@ -40,10 +40,15 @@ app.use(
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://tool.consultantsfactory.com","https://microservices.d1iwz64jvqpior.amplifyapp.com","https://main.d1jl1790poryf2.amplifyapp.com"],
+    origin: [
+      "http://localhost:3000",
+      "https://tool.consultantsfactory.com",
+      "https://microservices.d1iwz64jvqpior.amplifyapp.com",
+      "https://main.d1jl1790poryf2.amplifyapp.com",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization","x-org"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-org","x-region"],
   })
 );
 
@@ -72,17 +77,29 @@ app.use("/api/users", usersRouter);
 app.use("/uploads", express.static(uploadsDir));
 
 // ================= Connect DB and start server =================
-mongoose
-  .connect(
-    process.env.MONGO_URL ||
-      "mongodb+srv://debjit:katana007@cluster0.kd9pbws.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster0"
-  )
-  .then(() => {
-    console.log("Connected to DataBase");
-    app.listen(PORT, () =>
-      console.log(`✅ Backend running on http://localhost:${PORT}`)
-    );
-  })
-  .catch((err) => {
-    console.error("Failed to Connect DB:", err);
+const connections = {};
+
+function connectDB(name, uri) {
+  const conn = mongoose.createConnection(uri, {
+    tls: true,
+    retryWrites: false,
   });
+
+  conn.on("connected", () => console.log(`✅ Connected to ${name} DB`));
+
+  conn.on("error", (err) => console.error(`❌ ${name} DB error`, err));
+
+  return conn;
+}
+
+connections.india = connectDB("INDIA", "mongodb://cftoolind:katana007@docdb-ind.cyarnzzhddsw.ap-south-1.docdb.amazonaws.com:27017/admin");
+connections.eu = connectDB("EU", "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin");
+connections.us = connectDB("US", "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin");
+
+// Make connections available to routes
+app.locals.db = connections;
+
+// Start server AFTER all DBs are initialized
+app.listen(PORT, () =>
+  console.log(`✅ Backend running on http://localhost:${PORT}`)
+);
