@@ -149,14 +149,25 @@ router.post(
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase() }).populate(
-      "department"
-    );
 
+    // Use the region-specific DB connection
+    const db = req.db;
+    if (!db) return res.status(500).json({ error: "DB not available" });
+
+    // Create a model from the regional connection
+    const UserModel = db.model("User", User.schema);
+
+    // Find user
+    const user = await UserModel.findOne({
+      email: email.toLowerCase(),
+    }).populate("department");
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
-    if (!bcrypt.compareSync(password, user.password))
-      return res.status(401).json({ error: "Invalid credentials" });
 
+    // Verify password
+    const isMatch = bcrypt.compareSync(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
+
+    // Generate JWT
     const token = jwt.sign(
       {
         id: user._id,
@@ -168,8 +179,10 @@ router.post("/login", async (req, res) => {
       { expiresIn: "10h" }
     );
 
+    // Send response
     res.json({ token, user });
   } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
