@@ -4,10 +4,10 @@ const Risk = require("../models/Risks");
 const { authenticate } = require("../middleware/auth");
 
 // =============================
-// Helper: Get Risk Model (Region-Aware)
+// Safe model getter
 // =============================
 function getRiskModel(db) {
-  return db.model("Risk", Risk.schema);
+  return db.models.Risk || db.model("Risk", Risk.schema);
 }
 
 // =============================
@@ -20,12 +20,10 @@ router.get("/", authenticate, async (req, res) => {
 
     const RiskModel = getRiskModel(db);
 
-    const query = {};
-    if (req.user.organization) {
-      query.organization = req.user.organization;
-    }
+    const risks = await RiskModel.find({
+      organization: req.user.organization,
+    });
 
-    const risks = await RiskModel.find(query);
     res.json(risks);
   } catch (err) {
     console.error("Fetch risks error:", err);
@@ -43,15 +41,11 @@ router.get("/:id", authenticate, async (req, res) => {
 
     const RiskModel = getRiskModel(db);
 
-    const query = {
+    const risk = await RiskModel.findOne({
       riskId: req.params.id,
-    };
+      organization: req.user.organization,
+    });
 
-    if (req.user.organization) {
-      query.organization = req.user.organization;
-    }
-
-    const risk = await RiskModel.findOne(query);
     if (!risk) return res.status(404).json({ error: "Risk not found" });
 
     res.json(risk);
@@ -62,7 +56,7 @@ router.get("/:id", authenticate, async (req, res) => {
 });
 
 // =============================
-// CREATE / UPDATE RISK (UPSERT)
+// CREATE / UPDATE RISK
 // =============================
 router.post("/", authenticate, async (req, res) => {
   try {
@@ -71,23 +65,20 @@ router.post("/", authenticate, async (req, res) => {
 
     const RiskModel = getRiskModel(db);
 
-    const data = req.body;
-    if (!data.riskId)
+    if (!req.body.riskId)
       return res.status(400).json({ error: "riskId is required" });
-
-    const update = {
-      ...data,
-      organization: req.user.organization, // 🔐 org isolation
-      updatedAt: new Date(),
-    };
 
     const risk = await RiskModel.findOneAndUpdate(
       {
-        riskId: data.riskId,
+        riskId: req.body.riskId,
         organization: req.user.organization,
       },
-      update,
-      { new: true, upsert: true }
+      {
+        ...req.body,
+        organization: req.user.organization,
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true }
     );
 
     res.json(risk);
@@ -112,7 +103,7 @@ router.delete("/:id", authenticate, async (req, res) => {
       organization: req.user.organization,
     });
 
-    if (result.deletedCount === 0)
+    if (!result.deletedCount)
       return res.status(404).json({ error: "Risk not found" });
 
     res.json({ success: true });
