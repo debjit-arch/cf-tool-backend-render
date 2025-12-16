@@ -2,12 +2,10 @@ const mongoose = require("mongoose");
 
 const RiskSchema = new mongoose.Schema(
   {
-    // 🔐 Multi-tenant isolation (KEEP STRING for consistency)
+    // 🔐 Multi-tenant isolation
     organization: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
-      lowercase: true,
-      trim: true,
       index: true,
     },
 
@@ -15,7 +13,6 @@ const RiskSchema = new mongoose.Schema(
     riskId: {
       type: String,
       required: true,
-      trim: true,
     },
 
     department: String,
@@ -56,21 +53,15 @@ const RiskSchema = new mongoose.Schema(
     status: {
       type: String,
       default: "Active",
-      enum: ["Active", "Closed", "Mitigated"],
     },
   },
   {
-    timestamps: true, // auto manages createdAt & updatedAt
-    strict: true,
+    timestamps: true, // ✅ auto manages createdAt & updatedAt
+    strict: true, // ✅ keep strict ON (important)
   }
 );
 
-// ✅ Unique riskId PER organization
+// ✅ Risk ID must be unique PER organization (not globally)
 RiskSchema.index({ riskId: 1, organization: 1 }, { unique: true });
 
-/**
- * 🚨 IMPORTANT
- * Export ONLY the schema
- * Model MUST be created per-region via getModel(db, ...)
- */
-module.exports = RiskSchema;
+module.exports = mongoose.model("Risk", RiskSchema);

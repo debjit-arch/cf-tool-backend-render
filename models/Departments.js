@@ -8,16 +8,18 @@ const DepartmentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // 🔹 department belongs to a specific organization
     organization: {
       type: String,
       required: true,
       lowercase: true,
       trim: true,
-    },
+    }
   },
   { timestamps: true }
 );
 
+// 🔹 Ensure department names are unique inside each organization
 DepartmentSchema.index({ name: 1, organization: 1 }, { unique: true });
 
-module.exports = DepartmentSchema; // ✅ SCHEMA ONLY
+module.exports = mongoose.model("Department", DepartmentSchema);
