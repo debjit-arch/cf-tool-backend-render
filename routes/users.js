@@ -141,6 +141,7 @@ router.post("/login", async (req, res) => {
         id: user._id,
         role: user.role,
         organization: user.organization,
+        departmentId: user.department?._id,
       },
       JWT_SECRET,
       { expiresIn: "10h" }
