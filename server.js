@@ -42,6 +42,7 @@ app.use(
       "https://tool.consultantsfactory.com",
       "https://microservices.d1iwz64jvqpior.amplifyapp.com",
       "https://main.d1jl1790poryf2.amplifyapp.com",
+      "https://main.d3lh6u2gqwaju4.amplifyapp.com"
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
