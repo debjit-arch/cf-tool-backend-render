@@ -68,11 +68,11 @@ const dbConfigs = {
     conn: null,
   },
   EU: {
-    uri: "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin",
+    uri: "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin",
     conn: null,
   },
   US: {
-    uri: "mongodb://cftooladmin:katana007@docdb-eu.cjfxrwqdm1rm.eu-central-1.docdb.amazonaws.com:27017/admin",
+    uri: "mongodb://cftooladmin:katana007@docdb-us.cmuqitnitx1o.us-east-1.docdb.amazonaws.com:27017/admin",
     conn: null,
   },
 };
