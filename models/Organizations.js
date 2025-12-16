@@ -5,16 +5,14 @@ const OrganizationSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,       // each organization must have a unique name
+      unique: true,
       trim: true,
     },
 
-    // optional metadata
-    address: { type: String },
-    phone: { type: String },
-    website: { type: String },
+    address: String,
+    phone: String,
+    website: String,
 
-    // The root user that originally created this org (optional)
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -23,4 +21,4 @@ const OrganizationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Organization", OrganizationSchema);
+module.exports = OrganizationSchema; // ✅ SCHEMA ONLY

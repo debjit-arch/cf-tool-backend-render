@@ -16,32 +16,32 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 🔹 Organization each user belongs to
     organization: {
       type: String,
       required: function () {
-        return this.role !== "super_admin"; // super_admin does NOT need organization
+        return this.role !== "super_admin";
       },
       lowercase: true,
       trim: true,
     },
 
-    // 🔹 Department inside that organization
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       required: function () {
         return this.role !== "super_admin" && this.role !== "root";
-        // only required for risk_owner, risk_manager, risk_identifier
       },
     },
 
-    // 🔹 Email should be unique per organization, not globally
     email: {
       type: String,
       required: true,
+      lowercase: true,
+      trim: true,
     },
+
     password: { type: String, required: true },
+
     isAuditor: {
       type: Boolean,
       default: false,
@@ -50,7 +50,7 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔹 MongoDB compound index: unique email within the same organization
+// Unique email per organization
 UserSchema.index({ email: 1, organization: 1 }, { unique: true });
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = UserSchema; // ✅ SCHEMA ONLY

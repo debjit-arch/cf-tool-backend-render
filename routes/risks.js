@@ -1,28 +1,30 @@
 const express = require("express");
 const router = express.Router();
-const Risk = require("../models/Risks");
-const { authenticate } = require("../middleware/auth");
 
-// =============================
-// Safe model getter
-// =============================
+const { authenticate, authorizeRoles } = require("../middleware/auth");
+const getModel = require("../utils/getModel");
+
+const RiskSchema = require("../models/Risks");
+
+// -------------------------
+// Tenant / region safe model
+// -------------------------
 function getRiskModel(db) {
-  return db.models.Risk || db.model("Risk", Risk.schema);
+  return getModel(db, "Risk", RiskSchema);
 }
 
-// =============================
-// GET ALL RISKS (ORG + REGION SAFE)
-// =============================
+/* ======================================================
+   GET ALL RISKS (ORG + REGION SAFE)
+====================================================== */
 router.get("/", authenticate, async (req, res) => {
   try {
-    const db = req.db;
-    if (!db) return res.status(500).json({ error: "DB not available" });
+    if (!req.db) return res.status(500).json({ error: "DB not available" });
 
-    const RiskModel = getRiskModel(db);
+    const Risk = getRiskModel(req.db);
 
-    const risks = await RiskModel.find({
+    const risks = await Risk.find({
       organization: req.user.organization,
-    });
+    }).sort({ updatedAt: -1 });
 
     res.json(risks);
   } catch (err) {
@@ -31,17 +33,16 @@ router.get("/", authenticate, async (req, res) => {
   }
 });
 
-// =============================
-// GET RISK BY RISK ID
-// =============================
+/* ======================================================
+   GET RISK BY riskId
+====================================================== */
 router.get("/:id", authenticate, async (req, res) => {
   try {
-    const db = req.db;
-    if (!db) return res.status(500).json({ error: "DB not available" });
+    if (!req.db) return res.status(500).json({ error: "DB not available" });
 
-    const RiskModel = getRiskModel(db);
+    const Risk = getRiskModel(req.db);
 
-    const risk = await RiskModel.findOne({
+    const risk = await Risk.findOne({
       riskId: req.params.id,
       organization: req.user.organization,
     });
@@ -55,62 +56,82 @@ router.get("/:id", authenticate, async (req, res) => {
   }
 });
 
-// =============================
-// CREATE / UPDATE RISK
-// =============================
-router.post("/", authenticate, async (req, res) => {
-  try {
-    const db = req.db;
-    if (!db) return res.status(500).json({ error: "DB not available" });
+/* ======================================================
+   CREATE / UPDATE RISK (UPSERT)
+====================================================== */
+router.post(
+  "/",
+  authenticate,
+  authorizeRoles("super_admin", "root", "risk_owner", "risk_manager"),
+  async (req, res) => {
+    try {
+      if (!req.db) return res.status(500).json({ error: "DB not available" });
 
-    const RiskModel = getRiskModel(db);
+      if (!req.body.riskId)
+        return res.status(400).json({ error: "riskId is required" });
 
-    if (!req.body.riskId)
-      return res.status(400).json({ error: "riskId is required" });
+      const Risk = getRiskModel(req.db);
 
-    const risk = await RiskModel.findOneAndUpdate(
-      {
-        riskId: req.body.riskId,
-        organization: req.user.organization,
-      },
-      {
-        ...req.body,
-        organization: req.user.organization,
-        updatedAt: new Date(),
-      },
-      { upsert: true, new: true }
-    );
+      const { riskId, organization, ...payload } = req.body;
 
-    res.json(risk);
-  } catch (err) {
-    console.error("Save risk error:", err);
-    res.status(500).json({ error: "Failed to save risk" });
+      const risk = await Risk.findOneAndUpdate(
+        {
+          riskId,
+          organization: req.user.organization,
+        },
+        {
+          $set: {
+            ...payload,
+            organization: req.user.organization,
+            updatedAt: new Date(),
+          },
+          $setOnInsert: {
+            riskId,
+            createdAt: new Date(),
+          },
+        },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      res.json(risk);
+    } catch (err) {
+      console.error("Save risk error:", err);
+      res.status(500).json({ error: "Failed to save risk" });
+    }
   }
-});
+);
 
-// =============================
-// DELETE RISK
-// =============================
-router.delete("/:id", authenticate, async (req, res) => {
-  try {
-    const db = req.db;
-    if (!db) return res.status(500).json({ error: "DB not available" });
+/* ======================================================
+   DELETE RISK
+====================================================== */
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles("super_admin", "root", "risk_manager"),
+  async (req, res) => {
+    try {
+      if (!req.db) return res.status(500).json({ error: "DB not available" });
 
-    const RiskModel = getRiskModel(db);
+      const Risk = getRiskModel(req.db);
 
-    const result = await RiskModel.deleteOne({
-      riskId: req.params.id,
-      organization: req.user.organization,
-    });
+      const result = await Risk.deleteOne({
+        riskId: req.params.id,
+        organization: req.user.organization,
+      });
 
-    if (!result.deletedCount)
-      return res.status(404).json({ error: "Risk not found" });
+      if (!result.deletedCount)
+        return res.status(404).json({ error: "Risk not found" });
 
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Delete risk error:", err);
-    res.status(500).json({ error: "Failed to delete risk" });
+      res.json({ message: "Risk deleted" });
+    } catch (err) {
+      console.error("Delete risk error:", err);
+      res.status(500).json({ error: "Failed to delete risk" });
+    }
   }
-});
+);
 
 module.exports = router;
