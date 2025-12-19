@@ -43,6 +43,7 @@ app.use(
       "https://microservices.d1iwz64jvqpior.amplifyapp.com",
       "https://main.d1jl1790poryf2.amplifyapp.com",
       "https://main.d2y8kazdz4iqhv.amplifyapp.com",
+      "https://test-2.d2y8kazdz4iqhv.amplifyapp.com",
       "https://main.d3lh6u2gqwaju4.amplifyapp.com"
     ],
     credentials: true,
