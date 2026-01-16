@@ -192,6 +192,9 @@ router.post("/change-password", authenticate, async (req, res) => {
         .json({ error: "Old & new passwords are required" });
 
     const user = await User.findById(req.user.id);
+
+    console.log("AUTH USER:", req.user);
+
     if (!user) return res.status(404).json({ error: "User not found" });
     if (!bcrypt.compareSync(oldPassword, user.password))
       return res.status(401).json({ error: "Incorrect old password" });
