@@ -22,7 +22,23 @@ function authenticate(req, res, next) {
         .json({ error: "Token missing organization information" });
     }
 
-    req.user = decoded;
+    // ✅ NORMALIZE USER HERE
+    const userId = decoded.id || decoded.sub;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ error: "Invalid token: missing user identifier" });
+    }
+
+    req.user = {
+      id: userId, // 🔒 single source of truth
+      role: decoded.role,
+      name: decoded.name,
+      department: decoded.department,
+      organization: decoded.organization,
+    };
+
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid or expired token" });
