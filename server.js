@@ -114,9 +114,8 @@ async function getDBConnection(region) {
 
 // ================= Middleware: Attach DB =================
 app.use(async (req, res, next) => {
-  const region = req.headers["x-region"];
-  if (!region)
-    region=INDIA
+  // Use let because we might reassign it, or use a fallback
+  let region = req.headers["x-region"] || "INDIA"; 
 
   try {
     req.db = await getDBConnection(region);
