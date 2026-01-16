@@ -1,0 +1,60 @@
+[
+  {
+    "id": 1758170932969,
+    "docId": "1758170932917",
+    "status": "Closed",
+    "docName": "ISMS_POL_COM_v0.1 (2).docx (1).pdf",
+    "missing_sections": [],
+    "forbidden_phrases_found": [],
+    "missing_keywords": [
+      "must"
+    ],
+    "score": 92,
+    "label": "compliant",
+    "checkedAt": "2025-09-26T11:10:11.203Z"
+  },
+  {
+    "id": 1758178403000,
+    "docId": "1758178402963",
+    "status": "Rejeceted",
+    "docName": "ISMS_SOP_Human Resource Security Management Procedure_v5.0.txt",
+    "missing_sections": [
+      "Purpose",
+      "Scope",
+      "Responsibilities",
+      "Procedure"
+    ],
+    "forbidden_phrases_found": [],
+    "missing_keywords": [
+      "employees",
+      "policy",
+      "must",
+      "procedure"
+    ],
+    "score": 33,
+    "label": "non-compliant",
+    "checkedAt": "2025-09-26T11:10:23.133Z"
+  },
+  {
+    "id": 1759773573858,
+    "docId": "1759773573823",
+    "status": "Rejeceted",
+    "docName": "Debjit_Das_20-8-25.pdf",
+    "missing_sections": [
+      "Purpose",
+      "Scope",
+      "Responsibilities",
+      "Procedure"
+    ],
+    "forbidden_phrases_found": [],
+    "missing_keywords": [
+      "employees",
+      "policy",
+      "must",
+      "procedure"
+    ],
+    "score": 33,
+    "label": "non-compliant",
+    "checkedAt": "2025-10-06T18:00:09.535Z"
+  }
+]

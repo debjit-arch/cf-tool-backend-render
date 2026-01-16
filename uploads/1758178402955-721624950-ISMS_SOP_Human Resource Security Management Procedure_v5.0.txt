@@ -1,0 +1,119 @@
+CHANGES
+
+Hamburger button should hide after opening side bar since you have already handle if I click anywhere sidebar will close
+
+add a button for the dashboard
+
+Documentation part I will tell what to render if a risk gets identified. for that we need to connect.
+
+decrease size of everything but according to me its not required ig.
+
+Side bar should show like
+
+suppose top text will be
+
+CF TOOL
+RISK DASHBOARD
+ |->SAVED RISK
+ |->ADD RISK
+ |->ADD TASK
+ |->Templates
+
+Task Management
+
+Documentation
+
+Gap Assessment
+
+
+CHANGES I HAVE DONE
+
+Auto populate cia wrt to Asset Type is 
+
+const assetTypeOptions = [
+    { value: "Public", label: "Public" },
+    { value: "Private", label: "Private" },
+    { value: "Sensitive", label: "Sensitive" },
+    { value: "Confidential", label: "Confidential" },
+  ];
+  const assetCIAValues = {
+    Public: { confidentiality: 1, integrity: 1, availability: 1 },
+    Private: { confidentiality: 2, integrity: 2, availability: 2 },
+    Sensitive: { confidentiality: 3, integrity: 3, availability: 2 },
+    Confidential: { confidentiality: 3, integrity: 3, availability: 3 },
+  };
+
+at inputs component i.e the 
+DatePickerField
+
+SelectField
+
+I have added the readOnly Like
+
+import React from 'react';
+import '../../styles/GlobalStyles.css';
+
+const DatePickerField = ({ 
+  label, 
+  value, 
+  onChange, 
+  name, 
+  required = false,
+  className = '',
+  readOnly = false, // This is added
+  ...props 
+}) => {
+  return (
+    <div className={`date-picker-container ${className}`}>
+      {label && (
+        <label htmlFor={name} className="input-label">
+          {label}
+          {required && <span className="required">*</span>}
+        </label>
+      )}
+      <input
+        type="date"
+        id={name}
+        name={name}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className="date-picker-field"
+        disabled={readOnly}  //This is added.
+        {...props}
+      />
+    </div>
+  );
+};
+
+export default DatePickerField;
+
+
+same goes for the input field
+
+and made date for default date that is todays date.
+
+Same goes for risk type with use effects
+
+useEffect(() => {
+    if (!formData.riskType) {
+      handleInputChange({ target: { name: "riskType", value: "Operational" } });
+    }
+  }, [formData.riskType, handleInputChange]);
+
+  useEffect(() => {
+  if (!formData.date) {
+    const today = new Date().toISOString().split("T")[0]; // format: YYYY-MM-DD
+    handleInputChange({ target: { name: "date", value: today } });
+  }
+
+separated the likelihood (probability) options with 
+
+const liklihoodOptions = [
+    { value: 1, label: "1 - Unlikely" },
+    { value: 2, label: "2 - Mostly" },
+    { value: 3, label: "3 - Possible" },
+    { value: 4, label: "4 - Almost Likely" },
+  ];
+
+earlier it was mapped with ciaOptions.

@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "category": "5.3",
+    "description": "Segregation of duties "
+  },
+  {
+    "id": 2,
+    "category": "5.4",
+    "description": "Management responsibilities "
+  },
+  {
+    "id": 3,
+    "category": "5.7",
+    "description": "Threat intelligence "
+  },
+  {
+    "id": 5,
+    "category": "5.15",
+    "description": "Access control "
+  },
+  {
+    "id": 6,
+    "category": "8.30",
+    "description": "Outsourced development "
+  },
+  {
+    "id": 8,
+    "category": "5.34",
+    "description": "Privacy and protection of personal identifiable information (PII) "
+  },
+  {
+    "id": 9,
+    "category": "6.8",
+    "description": "Information security event reporting "
+  }
+]

@@ -1,0 +1,111 @@
+[
+  {
+    "id": 1758871935972,
+    "controlId": 1,
+    "category": "5.3",
+    "description": "Segregation of duties ",
+    "status": "Implemented",
+    "documentRef": [
+      "ISMS_DOC_Roles, Responsibilities and Authorities_v5.0"
+    ],
+    "createdAt": "2025-09-26T07:32:15.967Z",
+    "justification": "Risk Identified",
+    "updatedAt": "2025-10-07T11:52:26.122Z"
+  },
+  {
+    "id": 1758871935986,
+    "controlId": 2,
+    "category": "5.4",
+    "description": "Management responsibilities ",
+    "status": "Implemented",
+    "documentRef": [
+      "ISMS_SOP_Human Resource Security Management Procedure_v5.0"
+    ],
+    "createdAt": "2025-09-26T07:32:15.985Z",
+    "justification": "Risk Identified",
+    "updatedAt": "2025-10-06T17:54:21.405Z"
+  },
+  {
+    "id": 1758871936003,
+    "controlId": 3,
+    "category": "5.7",
+    "description": "Threat intelligence ",
+    "status": "Implemented",
+    "documentRef": [
+      "ISMS_POL_Threat Intelligence Policy_v1.0"
+    ],
+    "createdAt": "2025-09-26T07:32:16.001Z",
+    "justification": "Risk Identified",
+    "updatedAt": "2025-10-06T17:54:23.629Z"
+  },
+  {
+    "id": 1758871936076,
+    "controlId": 5,
+    "category": "5.15",
+    "description": "Access control ",
+    "status": "Planned",
+    "documentRef": [
+      "ISMS_POL_Access Control Policy_v5.0",
+      "ISMS_LOG_Access Control Matrix (ACM)_v1.0"
+    ],
+    "createdAt": "2025-09-26T07:32:16.073Z"
+  },
+  {
+    "id": 1758884758444,
+    "controlId": 6,
+    "category": "8.30",
+    "description": "Outsourced development ",
+    "status": "Planned",
+    "documentRef": [
+      "ISMS_Guideline_SDLC PROCESS & SECURE CODING_v5.0"
+    ],
+    "createdAt": "2025-09-26T11:05:58.436Z"
+  },
+  {
+    "id": 1759728293344,
+    "controlId": 8,
+    "category": "5.34",
+    "description": "Privacy and protection of personal identifiable information (PII) ",
+    "status": "Planned",
+    "documentRef": [
+      "ISMS_POL_Compliance_Policy_v5.0"
+    ],
+    "createdAt": "2025-10-06T05:24:53.335Z"
+  },
+  {
+    "id": 1759728293360,
+    "controlId": 9,
+    "category": "6.8",
+    "description": "Information security event reporting ",
+    "status": "Planned",
+    "documentRef": [
+      "ISMS_SOP_Security Incident Management Procedure_v5.0",
+      "Incidents captured in JIRA Tool"
+    ],
+    "createdAt": "2025-10-06T05:24:53.356Z"
+  },
+  {
+    "id": 1759837864831,
+    "controlId": 1,
+    "category": "5.15",
+    "description": "Access control ",
+    "status": "Planned",
+    "documentRef": [
+      "ISMS_POL_Access Control Policy_v5.0",
+      "ISMS_LOG_Access Control Matrix (ACM)_v1.0"
+    ],
+    "createdAt": "2025-10-07T11:51:04.824Z"
+  },
+  {
+    "id": 1759837923941,
+    "controlId": 1,
+    "category": "5.15",
+    "description": "Access control ",
+    "status": "Planned",
+    "documentRef": [
+      "ISMS_POL_Access Control Policy_v5.0",
+      "ISMS_LOG_Access Control Matrix (ACM)_v1.0"
+    ],
+    "createdAt": "2025-10-07T11:52:03.935Z"
+  }
+]
