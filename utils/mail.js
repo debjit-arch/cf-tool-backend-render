@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 
 const sendOtpEmail = async (to, otp) => {
   await transporter.sendMail({
-    from: `"SafeSphere" <safesphere.cf@gmail.com>`,
+    from: `"CalVant" <safesphere.cf@gmail.com>`,
     to,
     subject: "Your OTP for Password Reset",
     text: `Your OTP for password reset is: ${otp}. It is valid for 10 minutes.`,
